@@ -1,0 +1,376 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#287a46">
+<link rel="apple-touch-icon" href="icon-192.png">
+<title>テニス 5試合スコア（PWA）</title>
+<style>
+  :root{ --bd:#e6e6ea; --muted:#666; --fg:#111; --bg:#fff; --pri:#287a46; --lose:#fdeaea; --win:#eaf7ee; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+  body{ margin:0; background:var(--bg); color:var(--fg); font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,"Noto Sans JP","Hiragino Kaku Gothic ProN","Yu Gothic","メイリオ",sans-serif; }
+  header{ position:sticky; top:0; z-index:10; background:rgba(255,255,255,.98); border-bottom:1px solid var(--bd); padding:12px; display:flex; align-items:center; gap:8px; }
+  h1{ margin:0; font-size:18px; }
+  .logo{ width:28px; height:28px; border-radius:6px; background:#2b7a4b; display:flex; align-items:center; justify-content:center; color:#fff; font-weight:700; font-size:14px; }
+  .wrap{ padding:12px; padding-bottom:110px; max-width:1100px; margin:0 auto; }
+  .meta{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:10px; }
+  label{ font-size:12px; color:var(--muted); display:block; margin-bottom:4px; }
+  input[type="text"], select{ width:100%; font-size:18px; padding:12px; border:1px solid var(--bd); border-radius:10px; background:#fff; }
+  .card{ border:1px solid var(--bd); border-radius:14px; padding:12px; margin:10px 0; }
+  .card h3{ margin:0 0 8px; font-size:16px; }
+  .row{ display:grid; grid-template-columns:1fr 88px; gap:10px; align-items:end; }
+  .badge{ display:inline-block; min-width:40px; text-align:center; border:1px solid var(--bd); border-radius:999px; padding:8px 10px; font-size:14px; }
+  .badge.win{ background:var(--win); }
+  .badge.lose{ background:var(--lose); }
+  .sets{ display:grid; grid-template-columns:1fr 14px 1fr; gap:10px; align-items:center; }
+  .hint{ font-size:12px; color:var(--muted); margin-top:6px; }
+  .invalid{ outline:2px solid #ef9a9a; }
+  .footer{ position:fixed; left:0; right:0; bottom:0; background:#fff; border-top:1px solid var(--bd); padding:10px 12px calc(10px + env(safe-area-inset-bottom)); }
+  .summary{ display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin-bottom:8px; }
+  .summary .box{ border:1px solid var(--bd); border-radius:10px; padding:8px; text-align:center; }
+  .actions{ display:flex; gap:8px; }
+  .actions button{ flex:1; border:1px solid var(--bd); border-radius:10px; padding:10px 14px; font-size:16px; background:#f7f7f7; }
+  .actions .primary{ background:var(--pri); color:#fff; border-color:var(--pri); }
+  @media (max-width: 780px){
+    .meta{ grid-template-columns:1fr 1fr; }
+  }
+</style>
+</head>
+<body>
+<header><div class="logo">TS</div><h1>テニス 5試合スコア（PWA）</h1></header>
+<div class="wrap">
+  <div class="card">
+    <div class="meta">
+      <div><label>男子・女子</label><select id="gender"><option>男子</option><option>女子</option></select></div>
+      <div><label>部／その</label><input id="division" type="text" placeholder="例：3部 その2"></div>
+      <div><label>A・Bブロック</label><select id="block"><option>Aブロック</option><option>Bブロック</option></select></div>
+      <div><label>試合日</label><input id="date" type="date"></div>
+      <div><label>試合会場</label><input id="venue" type="text" placeholder="会場名"></div>
+      <div><label>備考（任意）</label><input id="note" type="text" placeholder="審判・天候など"></div>
+      <div><label>チーム名（ホスト）</label><input id="hostTeam" type="text" placeholder="チーム名"></div>
+      <div><label>チーム名（ビジター）</label><input id="visitorTeam" type="text" placeholder="チーム名"></div>
+    </div>
+  </div>
+
+  <!-- D1 -->
+  <div class="card" data-id="D1">
+    <h3>D1</h3>
+    <div class="row">
+      <div><label>ホスト 選手名</label><input data-role="hostName" type="text" placeholder="氏名（ダブルスは2名）"></div>
+      <div style="text-align:center;"><label>勝敗</label><span class="badge" data-host-wl>-</span></div>
+    </div>
+    <div class="row" style="margin-top:6px;">
+      <div><label>ビジター 選手名</label><input data-role="visitorName" type="text" placeholder="氏名（フルネーム）"></div>
+      <div style="text-align:center;"><label>勝敗</label><span class="badge" data-visitor-wl>-</span></div>
+    </div>
+    <div class="hint" style="margin-top:8px;">スコア選択（セット1・2はゲーム、セット3はTB10：10点先取・差2）</div>
+    <div class="sets" style="margin-top:6px;">
+      <select data-role="s1h"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+      <div>−</div>
+      <select data-role="s1v"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+    </div>
+    <div class="sets">
+      <select data-role="s2h"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+      <div>−</div>
+      <select data-role="s2v"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+    </div>
+    <div class="sets">
+      <select data-role="s3h"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option></select>
+      <div>−</div>
+      <select data-role="s3v"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option></select>
+    </div>
+  </div>
+
+  <!-- D2 -->
+  <div class="card" data-id="D2">
+    <h3>D2</h3>
+    <!-- （D1と同じ構成：省略せず貼り付けてください。以降S1/S2/S3も同様） -->
+    <div class="row">
+      <div><label>ホスト 選手名</label><input data-role="hostName" type="text" placeholder="氏名（ダブルスは2名）"></div>
+      <div style="text-align:center;"><label>勝敗</label><span class="badge" data-host-wl>-</span></div>
+    </div>
+    <div class="row" style="margin-top:6px;">
+      <div><label>ビジター 選手名</label><input data-role="visitorName" type="text" placeholder="氏名（フルネーム）"></div>
+      <div style="text-align:center;"><label>勝敗</label><span class="badge" data-visitor-wl>-</span></div>
+    </div>
+    <div class="hint" style="margin-top:8px;">スコア選択（セット1・2はゲーム、セット3はTB10）</div>
+    <div class="sets" style="margin-top:6px;">
+      <select data-role="s1h"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+      <div>−</div>
+      <select data-role="s1v"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+    </div>
+    <div class="sets">
+      <select data-role="s2h"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+      <div>−</div>
+      <select data-role="s2v"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+    </div>
+    <div class="sets">
+      <select data-role="s3h"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option></select>
+      <div>−</div>
+      <select data-role="s3v"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option></select>
+    </div>
+  </div>
+
+  <!-- S1 -->
+  <div class="card" data-id="S1">
+    <h3>S1</h3>
+    <div class="row">
+      <div><label>ホスト 選手名</label><input data-role="hostName" type="text" placeholder="氏名（フルネーム）"></div>
+      <div style="text-align:center;"><label>勝敗</label><span class="badge" data-host-wl>-</span></div>
+    </div>
+    <div class="row" style="margin-top:6px;">
+      <div><label>ビジター 選手名</label><input data-role="visitorName" type="text" placeholder="氏名（フルネーム）"></div>
+      <div style="text-align:center;"><label>勝敗</label><span class="badge" data-visitor-wl>-</span></div>
+    </div>
+    <div class="hint" style="margin-top:8px;">スコア選択（セット1・2はゲーム、セット3はTB10）</div>
+    <div class="sets" style="margin-top:6px;">
+      <select data-role="s1h"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+      <div>−</div>
+      <select data-role="s1v"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+    </div>
+    <div class="sets">
+      <select data-role="s2h"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+      <div>−</div>
+      <select data-role="s2v"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+    </div>
+    <div class="sets">
+      <select data-role="s3h"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option></select>
+      <div>−</div>
+      <select data-role="s3v"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option></select>
+    </div>
+  </div>
+
+  <!-- S2 -->
+  <div class="card" data-id="S2">
+    <h3>S2</h3>
+    <div class="row">
+      <div><label>ホスト 選手名</label><input data-role="hostName" type="text" placeholder="氏名（フルネーム）"></div>
+      <div style="text-align:center;"><label>勝敗</label><span class="badge" data-host-wl>-</span></div>
+    </div>
+    <div class="row" style="margin-top:6px;">
+      <div><label>ビジター 選手名</label><input data-role="visitorName" type="text" placeholder="氏名（フルネーム）"></div>
+      <div style="text-align:center;"><label>勝敗</label><span class="badge" data-visitor-wl>-</span></div>
+    </div>
+    <div class="hint" style="margin-top:8px;">スコア選択（セット1・2はゲーム、セット3はTB10）</div>
+    <div class="sets" style="margin-top:6px;">
+      <select data-role="s1h"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+      <div>−</div>
+      <select data-role="s1v"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+    </div>
+    <div class="sets">
+      <select data-role="s2h"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+      <div>−</div>
+      <select data-role="s2v"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+    </div>
+    <div class="sets">
+      <select data-role="s3h"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option></select>
+      <div>−</div>
+      <select data-role="s3v"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option></select>
+    </div>
+  </div>
+
+  <!-- S3 -->
+  <div class="card" data-id="S3">
+    <h3>S3</h3>
+    <div class="row">
+      <div><label>ホスト 選手名</label><input data-role="hostName" type="text" placeholder="氏名（フルネーム）"></div>
+      <div style="text-align:center;"><label>勝敗</label><span class="badge" data-host-wl>-</span></div>
+    </div>
+    <div class="row" style="margin-top:6px;">
+      <div><label>ビジター 選手名</label><input data-role="visitorName" type="text" placeholder="氏名（フルネーム）"></div>
+      <div style="text-align:center;"><label>勝敗</label><span class="badge" data-visitor-wl>-</span></div>
+    </div>
+    <div class="hint" style="margin-top:8px;">スコア選択（セット1・2はゲーム、セット3はTB10）</div>
+    <div class="sets" style="margin-top:6px;">
+      <select data-role="s1h"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+      <div>−</div>
+      <select data-role="s1v"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+    </div>
+    <div class="sets">
+      <select data-role="s2h"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+      <div>−</div>
+      <select data-role="s2v"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option></select>
+    </div>
+    <div class="sets">
+      <select data-role="s3h"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option></select>
+      <div>−</div>
+      <select data-role="s3v"><option value="">—</option><option>0</option><option>1</option><option>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option><option>13</option><option>14</option><option>15</option><option>16</option><option>17</option><option>18</option><option>19</option><option>20</option></select>
+    </div>
+  </div>
+
+  <p class="hint">※ セット1/2：6先取・差2（7-5/7-6可）。セット3：TB10（10点・差2）。TB点は勝ゲーム数に含めません。</p>
+</div>
+
+<div class="footer">
+  <div class="summary">
+    <div class="box">勝数<br><b><span id="mwH">0</span> - <span id="mwV">0</span></b></div>
+    <div class="box">勝セット数<br><b><span id="swH">0</span> - <span id="swV">0</span></b></div>
+    <div class="box">勝ゲーム数<br><b><span id="gwH">0</span> - <span id="gwV">0</span></b></div>
+  </div>
+  <div class="actions">
+    <button id="save" class="primary">保存</button>
+    <button id="load">読込</button>
+    <button id="csv">CSV</button>
+    <button id="reset">リセット</button>
+  </div>
+</div>
+
+<script>
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(()=>{}));
+}
+function toNum(v){ if(v===''||v==null) return null; const n = Number(v); return isNaN(n)?null:n; }
+function validSet(h,v){
+  if(h==null||v==null) return 0;
+  const max=Math.max(h,v), min=Math.min(h,v), diff=Math.abs(h-v);
+  if(max>=6 && diff>=2) return h>v?1:-1;
+  if(max===7 && (min===5 || min===6)) return h>v?1:-1;
+  return 9; // invalid
+}
+function validTB10(h,v){
+  if(h==null||v==null) return 0;
+  const max=Math.max(h,v), diff=Math.abs(h-v);
+  if(max>=10 && diff>=2) return h>v?1:-1;
+  return 9; // invalid
+}
+function compute(){
+  let mwH=0, mwV=0, swH=0, swV=0, gwH=0, gwV=0;
+  document.querySelectorAll('.card[data-id]').forEach(card=>{
+    card.querySelectorAll('select').forEach(s=>s.classList.remove('invalid'));
+    const s1h = toNum(card.querySelector('[data-role="s1h"]').value);
+    const s1v = toNum(card.querySelector('[data-role="s1v"]').value);
+    const s2h = toNum(card.querySelector('[data-role="s2h"]').value);
+    const s2v = toNum(card.querySelector('[data-role="s2v"]').value);
+    const s3h = toNum(card.querySelector('[data-role="s3h"]').value);
+    const s3v = toNum(card.querySelector('[data-role="s3v"]').value);
+    let hsets=0, vsets=0, hgames=0, vgames=0;
+    if(s1h!=null && s1v!=null){
+      hgames += s1h; vgames += s1v;
+      const r1=validSet(s1h,s1v);
+      if(r1===1) hsets++; else if(r1===-1) vsets++; else card.querySelectorAll('[data-role="s1h"],[data-role="s1v"]').forEach(s=>s.classList.add('invalid'));
+    }
+    if(s2h!=null && s2v!=null){
+      hgames += s2h; vgames += s2v;
+      const r2=validSet(s2h,s2v);
+      if(r2===1) hsets++; else if(r2===-1) vsets++; else card.querySelectorAll('[data-role="s2h"],[data-role="s2v"]').forEach(s=>s.classList.add('invalid'));
+    }
+    if(s3h!=null && s3v!=null){
+      const r3=validTB10(s3h,s3v);
+      if(r3===1) hsets++; else if(r3===-1) vsets++; else card.querySelectorAll('[data-role="s3h"],[data-role="s3v"]').forEach(s=>s.classList.add('invalid'));
+    }
+    swH += hsets; swV += vsets; gwH += hgames; gwV += vgames;
+    let hostWL='-', visitorWL='-';
+    if(hsets>vsets){ mwH++; hostWL='勝'; visitorWL='敗'; }
+    else if(vsets>hsets){ mwV++; hostWL='敗'; visitorWL='勝'; }
+    const hwEl = card.querySelector('[data-host-wl]');
+    const vwEl = card.querySelector('[data-visitor-wl]');
+    hwEl.textContent=hostWL; vwEl.textContent=visitorWL;
+    hwEl.className = 'badge ' + (hostWL==='勝'?'win':hostWL==='敗'?'lose':'');
+    vwEl.className = 'badge ' + (visitorWL==='勝'?'win':visitorWL==='敗'?'lose':'');
+  });
+  document.getElementById('mwH').textContent = mwH;
+  document.getElementById('mwV').textContent = mwV;
+  document.getElementById('swH').textContent = swH;
+  document.getElementById('swV').textContent = swV;
+  document.getElementById('gwH').textContent = gwH;
+  document.getElementById('gwV').textContent = gwV;
+}
+document.addEventListener('change', e=>{ if(e.target.matches('select')) compute(); });
+document.addEventListener('input', e=>{ if(e.target.matches('input[type="text"]')) compute(); });
+function gather(){
+  return {
+    meta: {
+      gender: document.getElementById('gender').value,
+      division: document.getElementById('division').value,
+      block: document.getElementById('block').value,
+      date: document.getElementById('date').value,
+      venue: document.getElementById('venue').value,
+      note: document.getElementById('note').value,
+      hostTeam: document.getElementById('hostTeam').value,
+      visitorTeam: document.getElementById('visitorTeam').value,
+    },
+    rows: Array.from(document.querySelectorAll('.card[data-id]')).map(card=>({
+      id: card.dataset.id,
+      hostName: card.querySelector('[data-role="hostName"]').value || '',
+      visitorName: card.querySelector('[data-role="visitorName"]').value || '',
+      s1h: card.querySelector('[data-role="s1h"]').value || '',
+      s1v: card.querySelector('[data-role="s1v"]').value || '',
+      s2h: card.querySelector('[data-role="s2h"]').value || '',
+      s2v: card.querySelector('[data-role="s2v"]').value || '',
+      s3h: card.querySelector('[data-role="s3h"]').value || '',
+      s3v: card.querySelector('[data-role="s3v"]').value || ''
+    }))
+  };
+}
+function apply(state){
+  if(!state) return;
+  const m=state.meta||{};
+  document.getElementById('gender').value=m.gender||'男子';
+  document.getElementById('division').value=m.division||'';
+  document.getElementById('block').value=m.block||'Aブロック';
+  document.getElementById('date').value=m.date||'';
+  document.getElementById('venue').value=m.venue||'';
+  document.getElementById('note').value=m.note||'';
+  document.getElementById('hostTeam').value=m.hostTeam||'';
+  document.getElementById('visitorTeam').value=m.visitorTeam||'';
+  const cards = document.querySelectorAll('.card[data-id]');
+  (state.rows||[]).forEach((r,i)=>{
+    const c = cards[i]; if(!c) return;
+    c.querySelector('[data-role="hostName"]').value = r.hostName||'';
+    c.querySelector('[data-role="visitorName"]').value = r.visitorName||'';
+    ['s1h','s1v','s2h','s2v','s3h','s3v'].forEach(k=>{
+      const el=c.querySelector(`[data-role="${k}"]`); if(el) el.value = r[k]||'';
+    });
+  });
+  compute();
+}
+document.getElementById('save').addEventListener('click', ()=>{
+  localStorage.setItem('tennis_state', JSON.stringify(gather()));
+  alert('保存しました');
+});
+document.getElementById('load').addEventListener('click', ()=>{
+  const raw = localStorage.getItem('tennis_state'); if(!raw) return alert('保存データがありません');
+  apply(JSON.parse(raw)); alert('読み込みました');
+});
+document.getElementById('reset').addEventListener('click', ()=>{
+  if(!confirm('すべてリセットしますか？')) return;
+  localStorage.removeItem('tennis_state'); location.reload();
+});
+document.getElementById('csv').addEventListener('click', ()=>{
+  compute();
+  const data = gather();
+  const rows=[];
+  rows.push(['男子・女子', data.meta.gender], ['部／その', data.meta.division], ['A・Bブロック', data.meta.block]);
+  rows.push(['試合日', data.meta.date], ['会場', data.meta.venue]);
+  rows.push(['ホスト', data.meta.hostTeam], ['ビジター', data.meta.visitorTeam]);
+  rows.push([]);
+  rows.push(['種目','ホスト勝敗','ホスト選手','S1(H)','S1(V)','S2(H)','S2(V)','TB10(H)','TB10(V)','ビジター勝敗','ビジター選手']);
+  document.querySelectorAll('.card[data-id]').forEach(card=>{
+    rows.push([
+      card.dataset.id,
+      card.querySelector('[data-host-wl]')?.textContent || '',
+      card.querySelector('[data-role="hostName"]').value||'',
+      card.querySelector('[data-role="s1h"]').value||'',
+      card.querySelector('[data-role="s1v"]').value||'',
+      card.querySelector('[data-role="s2h"]').value||'',
+      card.querySelector('[data-role="s2v"]').value||'',
+      card.querySelector('[data-role="s3h"]').value||'',
+      card.querySelector('[data-role="s3v"]').value||'',
+      card.querySelector('[data-visitor-wl]')?.textContent || '',
+      card.querySelector('[data-role="visitorName"]').value||''
+    ]);
+  });
+  rows.push([]);
+  rows.push(['合計','勝（H）', document.getElementById('mwH').textContent, '勝（V）', document.getElementById('mwV').textContent,
+             'セット（H）', document.getElementById('swH').textContent, 'セット（V）', document.getElementById('swV').textContent,
+             'ゲーム（H）', document.getElementById('gwH').textContent, 'ゲーム（V）', document.getElementById('gwV').textContent]);
+  const csv = rows.map(r=>r.map(v=>`"${(v??'').toString().replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
+  const url = URL.createObjectURL(blob); const a=document.createElement('a'); a.href=url; a.download=`tennis_${new Date().toISOString().slice(0,10)}.csv`; a.click(); URL.revokeObjectURL(url);
+});
+compute();
+</script>
+</body>
+</html>
